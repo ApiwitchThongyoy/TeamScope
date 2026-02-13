@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import CreateBoard from '../Create/create';
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [showCreateBoard, setShowCreateBoard] = useState(false);
+  const [boards, setBoards] = useState<any[]>([]);
 
   const handleSearch = () => {
     console.log('ค้นหา:', searchTerm);
@@ -11,6 +14,11 @@ export default function Home() {
     if (event.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const handleSaveBoard = (boardData: { name: string; description: string; privacy: string }) => {
+    console.log('บันทึกบอร์ด:', boardData);
+    setBoards([...boards, { ...boardData, id: Date.now() }]);
   };
 
   return (
@@ -84,10 +92,24 @@ export default function Home() {
 
               <div className="flex gap-6">
                 <div className="bg-white rounded-3xl w-64 h-64 shadow-sm flex items-center justify-center">
-                  <button className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer">
+                  <button 
+                    onClick={() => setShowCreateBoard(true)}
+                    className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer"
+                  >
                     <span className="text-3xl text-gray-600">+</span>
                   </button>
                 </div>
+
+
+                {boards.map((board) => (
+                  <div key={board.id} className="bg-white rounded-3xl w-64 h-64 shadow-sm p-6">
+                    <h3 className="text-xl font-bold mb-2">{board.name}</h3>
+                    <p className="text-gray-600 text-sm">{board.description}</p>
+                    <span className="text-xs text-gray-500 mt-2 inline-block">
+                      {board.privacy}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
@@ -101,6 +123,13 @@ export default function Home() {
           </main>
         </div>
       </div>
+
+      {showCreateBoard && (
+        <CreateBoard
+          onClose={() => setShowCreateBoard(false)}
+          onSave={handleSaveBoard}
+        />
+      )}
     </div>
   );
 }
