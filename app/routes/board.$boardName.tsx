@@ -34,9 +34,13 @@ export default function Dashboard() {
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  const handleCombinedDrop = (columnId: string) => {
+  // แยกออกเป็น 2 ฟังก์ชัน ไม่รวมกัน
+  const handleTaskDropOnly = (columnId: string, toIndex?: number) => {
+    handleTaskDrop(columnId, toIndex);
+  };
+
+  const handleColumnDropOnly = (columnId: string) => {
     handleColumnDrop(columnId);
-    handleTaskDrop(columnId);
   };
 
   return (
@@ -59,13 +63,13 @@ export default function Dashboard() {
 
         <div className="p-6">
           <div className="max-w-screen-2xl mx-auto">
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {columns.map((Column) => (
+            <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+              {columns.map((column) => (
                 <ColumnCard
-                  key={Column.id}
-                  column={Column}
+                  key={column.id}
+                  column={column}
                   allColumns={columns}
-                  isDragging={draggedColumnId === Column.id}
+                  isDragging={draggedColumnId === column.id}
                   onAddCard={handleAddCard}
                   onDeleteCard={handleDeleteCard}
                   onSaveTitle={handleSaveColumnTitle}
@@ -75,7 +79,8 @@ export default function Dashboard() {
                   onTaskDragStart={handleTaskDragStart}
                   onColumnDragStart={handleColumnDragStart}
                   onDragOver={handleDragOver}
-                  onDrop={handleCombinedDrop}
+                  onDrop={handleTaskDropOnly}
+                  onColumnDrop={handleColumnDropOnly}
                 />
               ))}
 

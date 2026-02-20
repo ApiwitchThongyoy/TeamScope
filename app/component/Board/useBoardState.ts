@@ -101,22 +101,31 @@ export function useBoardState(initialBoardName: string) {
     setDraggedTask({ task, fromColumnId: columnId });
   };
 
-  const handleTaskDrop = (toColumnId: string) => {
-    if (!draggedTask) return;
-    const { task, fromColumnId } = draggedTask;
-    if (fromColumnId === toColumnId) { setDraggedTask(null); return; }
+  const handleTaskDrop = (toColumnId: string, toIndex?: number) => {
+  if (!draggedTask) return;
+  const { task, fromColumnId } = draggedTask;
 
-    setColumns(prev =>
-      prev.map(col => {
-        if (col.id === fromColumnId) return { ...col, tasks: col.tasks.filter(t => t.id !== task.id) };
-        if (col.id === toColumnId) return { ...col, tasks: [...col.tasks, task] };
-        return col;
-      })
+  setColumns(prev => {
+    // ลบออกจาก column เดิมก่อน
+    const withoutTask = prev.map(col =>
+      col.id === fromColumnId
+        ? { ...col, tasks: col.tasks.filter(t => t.id !== task.id) }
+        : col
     );
-    setDraggedTask(null);
-  };
 
-  // ── Drag & Drop — Columns ───────────────────────────────────
+    
+    return withoutTask.map(col => {
+      if (col.id !== toColumnId) return col;
+      const newTasks = [...col.tasks];
+      const insertAt = toIndex !== undefined ? toIndex : newTasks.length;
+      newTasks.splice(insertAt, 0, task);
+      return { ...col, tasks: newTasks };
+    });
+  });
+
+  setDraggedTask(null);
+};
+
   const handleColumnDragStart = (columnId: string) => setDraggedColumnId(columnId);
 
   const handleColumnDrop = (targetColumnId: string) => {
@@ -158,5 +167,6 @@ export function useBoardState(initialBoardName: string) {
     handleColumnDragStart,
     handleColumnDrop,
     handleBack,
+    
   };
 }

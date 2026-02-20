@@ -54,7 +54,7 @@ export default function AddColumnButton({ onAdd }: Props) {
       onClick={() => setIsAdding(true)}
       className="bg-white rounded-2xl p-4 min-w-70 max-w-70 shrink-0 hover:bg-gray-100 transition flex items-center justify-center text-2xl font-bold italic text-gray-500 cursor-pointer"
     >
-      Add
+      เพิ่ม
     </button>
   );
 }

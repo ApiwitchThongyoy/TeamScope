@@ -16,7 +16,8 @@ interface Props {
   onTaskDragStart: (task: Task, columnId: string) => void;
   onColumnDragStart: (columnId: string) => void;
   onDragOver: (e: React.DragEvent) => void;
-  onDrop: (columnId: string) => void;
+  onDrop: (columnId: string, toIndex?: number) => void;
+  onColumnDrop: (columnId: string) => void;
 }
 
 export default function ColumnCard({
@@ -33,12 +34,14 @@ export default function ColumnCard({
   onColumnDragStart,
   onDragOver,
   onDrop,
+  onColumnDrop,
 }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newCardContent, setNewCardContent] = useState('');
   const [openMenu, setOpenMenu] = useState(false);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   const handleStartEdit = () => {
     setEditingTitle(column.title);
@@ -58,9 +61,23 @@ export default function ColumnCard({
     setIsAddingCard(false);
   };
 
+  const handleTaskDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const newIndex = e.clientY < midY ? index : index + 1;
+    // อัปเดตเฉพาะเมื่อค่าเปลี่ยนจริง ลด flicker
+    setDragOverIndex(prev => prev !== newIndex ? newIndex : prev);
+  };
+
+  const handleDrop = () => {
+    onDrop(column.id, dragOverIndex ?? column.tasks.length);
+    setDragOverIndex(null);
+  };
+
   return (
     <>
-      {/* Overlay to close menu */}
       {openMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(false)} />
       )}
@@ -69,8 +86,8 @@ export default function ColumnCard({
         draggable
         onDragStart={() => onColumnDragStart(column.id)}
         onDragOver={onDragOver}
-        onDrop={() => onDrop(column.id)}
-        className={`bg-white rounded-2xl p-4 min-w-70 max-w-70 shrink-0 ${isDragging ? 'opacity-50' : ''}`}
+        onDrop={() => onColumnDrop(column.id)}
+        className={`bg-white rounded-2xl p-4 min-w-70 max-w-70 shrink-0 h-fit flex flex-col ${isDragging ? 'border-2 border-blue-300' : ''}`}
       >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
@@ -84,7 +101,7 @@ export default function ColumnCard({
                 if (e.key === 'Enter') handleSaveTitle();
                 if (e.key === 'Escape') { setIsEditingTitle(false); setEditingTitle(''); }
               }}
-              className="text-xl font-bold italic bg-gray-100 px-2 py-1 rounded border-2 border-blue-500 focus:outline-none flex-1"
+              className="text-xl font-bold italic bg-gray-100 px-2 py-1 rounded border-2 border-gray-500 focus:outline-none flex-1"
               autoFocus
             />
           ) : (
@@ -119,14 +136,49 @@ export default function ColumnCard({
         </div>
 
         {/* Tasks */}
-        <div className="space-y-2 min-h-70">
-          {column.tasks.map((task) => (
-            <TaskCard
+        <div
+          className="space-y-2 min-h-10"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (column.tasks.length === 0) setDragOverIndex(0);
+          }}
+          onDrop={(e) => {
+            e.stopPropagation();
+            handleDrop();
+          }}
+          onDragLeave={(e) => {
+            // reset เฉพาะเมื่อ mouse ออกนอก task area จริงๆ
+            const rect = e.currentTarget.getBoundingClientRect();
+            if (
+              e.clientX < rect.left ||
+              e.clientX > rect.right ||
+              e.clientY < rect.top ||
+              e.clientY > rect.bottom
+            ) {
+              setDragOverIndex(null);
+            }
+          }}
+        >
+          {dragOverIndex === 0 && (
+            <div className="h-0.5 bg-blue-400 rounded mx-1" />
+          )}
+
+          {column.tasks.map((task, index) => (
+            <div
               key={task.id}
-              task={task}
-              onDelete={() => onDeleteCard(column.id, task.id)}
-              onDragStart={() => onTaskDragStart(task, column.id)}
-            />
+              onDragOver={(e) => handleTaskDragOver(e, index)}
+            >
+              <TaskCard
+                task={task}
+                onDelete={() => onDeleteCard(column.id, task.id)}
+                onDragStart={() => onTaskDragStart(task, column.id)}
+              />
+
+              {dragOverIndex === index + 1 && (
+                <div className="h-0.5 bg-blue-400 rounded mx-1 mt-2" />
+              )}
+            </div>
           ))}
         </div>
 
@@ -163,7 +215,7 @@ export default function ColumnCard({
         ) : (
           <button
             onClick={() => setIsAddingCard(true)}
-            className="w-full mt-2 p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition text-left flex items-center gap-2"
+            className="w-full mt-2 p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition text-left flex items-center gap-2 cursor-pointer"
           >
             <i className="fi fi-rr-plus text-sm"></i>
             <span className="text-sm">เพิ่มการ์ด</span>
