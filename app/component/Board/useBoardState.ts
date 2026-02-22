@@ -76,7 +76,7 @@ export function useBoardState(initialBoardName: string) {
       setColumns(prev =>
         prev.map(col =>
           col.id === columnId
-            ? { ...col, tasks: [...col.tasks, { id: Date.now().toString(), content }] }
+            ? { ...col, tasks: [...col.tasks, { id: Date.now().toString(), content, isDone: false }] }
             : col
         )
       );
@@ -93,13 +93,24 @@ export function useBoardState(initialBoardName: string) {
     );
   };
 
-  // อัปเดตเนื้อหาการ์ดจาก modal
   const handleUpdateCardContent = (taskId: string, newContent: string) => {
     setColumns(prev =>
       prev.map(col => ({
         ...col,
         tasks: col.tasks.map(task =>
           task.id === taskId ? { ...task, content: newContent } : task
+        ),
+      }))
+    );
+  };
+
+  // toggle isDone — ใช้จาก CardModal แล้วสะท้อนกลับมาที่ TaskCard
+  const handleToggleTaskDone = (taskId: string, isDone: boolean) => {
+    setColumns(prev =>
+      prev.map(col => ({
+        ...col,
+        tasks: col.tasks.map(task =>
+          task.id === taskId ? { ...task, isDone } : task
         ),
       }))
     );
@@ -166,6 +177,7 @@ export function useBoardState(initialBoardName: string) {
     handleAddCard,
     handleDeleteCard,
     handleUpdateCardContent,
+    handleToggleTaskDone,
     handleTaskDragStart,
     handleTaskDrop,
     handleColumnDragStart,

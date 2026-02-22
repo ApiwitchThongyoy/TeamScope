@@ -20,6 +20,7 @@ interface Props {
   onDrop: (columnId: string, toIndex?: number) => void;
   onColumnDrop: (columnId: string) => void;
   onUpdateCardContent: (taskId: string, newContent: string) => void;
+  onToggleTaskDone: (taskId: string, isDone: boolean) => void;
 }
 
 export default function ColumnCard({
@@ -38,6 +39,7 @@ export default function ColumnCard({
   onDrop,
   onColumnDrop,
   onUpdateCardContent,
+  onToggleTaskDone,
 }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
@@ -85,7 +87,6 @@ export default function ColumnCard({
         <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(false)} />
       )}
 
-      {/* Card Modal */}
       {selectedTask && (
         <CardModal
           task={selectedTask}
@@ -94,6 +95,10 @@ export default function ColumnCard({
           onUpdateContent={(taskId, newContent) => {
             onUpdateCardContent(taskId, newContent);
             setSelectedTask(prev => prev ? { ...prev, content: newContent } : null);
+          }}
+          onToggleDone={(taskId, isDone) => {
+            onToggleTaskDone(taskId, isDone);
+            setSelectedTask(prev => prev ? { ...prev, isDone } : null);
           }}
         />
       )}
@@ -216,13 +221,13 @@ export default function ColumnCard({
             <div className="flex gap-2 mt-2">
               <button
                 onClick={handleAddCard}
-                className="flex-1 bg-blue-500 text-white py-1 rounded hover:bg-blue-600 transition text-sm"
+                className="flex-1 bg-blue-500 text-white py-1 rounded hover:bg-blue-600 transition text-sm cursor-pointer"
               >
                 เพิ่ม
               </button>
               <button
                 onClick={() => { setIsAddingCard(false); setNewCardContent(''); }}
-                className="px-3 bg-gray-200 rounded hover:bg-gray-300 transition text-sm"
+                className="px-3 bg-gray-200 rounded hover:bg-gray-300 transition text-sm cursor-pointer"
               >
                 ✕
               </button>
