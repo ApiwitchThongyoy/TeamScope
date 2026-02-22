@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Column, Task } from '../Board/types';
 import TaskCard from './TaskCard';
 import ColumnMenu from './ColumnMenu';
+import CardModal from './Cardmodal';
 
 interface Props {
   column: Column;
@@ -18,6 +19,7 @@ interface Props {
   onDragOver: (e: React.DragEvent) => void;
   onDrop: (columnId: string, toIndex?: number) => void;
   onColumnDrop: (columnId: string) => void;
+  onUpdateCardContent: (taskId: string, newContent: string) => void;
 }
 
 export default function ColumnCard({
@@ -35,6 +37,7 @@ export default function ColumnCard({
   onDragOver,
   onDrop,
   onColumnDrop,
+  onUpdateCardContent,
 }: Props) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
@@ -42,6 +45,7 @@ export default function ColumnCard({
   const [newCardContent, setNewCardContent] = useState('');
   const [openMenu, setOpenMenu] = useState(false);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const handleStartEdit = () => {
     setEditingTitle(column.title);
@@ -67,7 +71,6 @@ export default function ColumnCard({
     const rect = e.currentTarget.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
     const newIndex = e.clientY < midY ? index : index + 1;
-    // อัปเดตเฉพาะเมื่อค่าเปลี่ยนจริง ลด flicker
     setDragOverIndex(prev => prev !== newIndex ? newIndex : prev);
   };
 
@@ -80,6 +83,19 @@ export default function ColumnCard({
     <>
       {openMenu && (
         <div className="fixed inset-0 z-40" onClick={() => setOpenMenu(false)} />
+      )}
+
+      {/* Card Modal */}
+      {selectedTask && (
+        <CardModal
+          task={selectedTask}
+          columnTitle={column.title}
+          onClose={() => setSelectedTask(null)}
+          onUpdateContent={(taskId, newContent) => {
+            onUpdateCardContent(taskId, newContent);
+            setSelectedTask(prev => prev ? { ...prev, content: newContent } : null);
+          }}
+        />
       )}
 
       <div
@@ -101,7 +117,7 @@ export default function ColumnCard({
                 if (e.key === 'Enter') handleSaveTitle();
                 if (e.key === 'Escape') { setIsEditingTitle(false); setEditingTitle(''); }
               }}
-              className="text-xl font-bold italic bg-gray-100 px-2 py-1 rounded border-2 border-gray-500 focus:outline-none flex-1"
+              className="text-xl font-bold italic bg-gray-100 px-2 py-1 rounded border-2 border-blue-500 focus:outline-none flex-1"
               autoFocus
             />
           ) : (
@@ -148,7 +164,6 @@ export default function ColumnCard({
             handleDrop();
           }}
           onDragLeave={(e) => {
-            // reset เฉพาะเมื่อ mouse ออกนอก task area จริงๆ
             const rect = e.currentTarget.getBoundingClientRect();
             if (
               e.clientX < rect.left ||
@@ -173,6 +188,7 @@ export default function ColumnCard({
                 task={task}
                 onDelete={() => onDeleteCard(column.id, task.id)}
                 onDragStart={() => onTaskDragStart(task, column.id)}
+                onClick={() => setSelectedTask(task)}
               />
 
               {dragOverIndex === index + 1 && (

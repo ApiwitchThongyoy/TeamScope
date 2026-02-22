@@ -11,7 +11,6 @@ export function useBoardState(initialBoardName: string) {
   const [draggedTask, setDraggedTask] = useState<{ task: Task; fromColumnId: string } | null>(null);
   const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
 
-  // ── Board Name ──────────────────────────────────────────────
   const handleSaveBoardName = () => {
     if (boardName.trim()) {
       const savedBoards = JSON.parse(localStorage.getItem('boards') || '[]');
@@ -23,7 +22,6 @@ export function useBoardState(initialBoardName: string) {
     setIsEditingBoardName(false);
   };
 
-  // ── Column CRUD ─────────────────────────────────────────────
   const handleAddColumn = (title: string) => {
     if (title.trim()) {
       setColumns(prev => [...prev, { id: Date.now().toString(), title, tasks: [] }]);
@@ -73,7 +71,6 @@ export function useBoardState(initialBoardName: string) {
     setColumns(newColumns);
   };
 
-  // ── Card CRUD ───────────────────────────────────────────────
   const handleAddCard = (columnId: string, content: string) => {
     if (content.trim()) {
       setColumns(prev =>
@@ -96,35 +93,43 @@ export function useBoardState(initialBoardName: string) {
     );
   };
 
-  // ── Drag & Drop — Tasks ─────────────────────────────────────
+  // อัปเดตเนื้อหาการ์ดจาก modal
+  const handleUpdateCardContent = (taskId: string, newContent: string) => {
+    setColumns(prev =>
+      prev.map(col => ({
+        ...col,
+        tasks: col.tasks.map(task =>
+          task.id === taskId ? { ...task, content: newContent } : task
+        ),
+      }))
+    );
+  };
+
   const handleTaskDragStart = (task: Task, columnId: string) => {
     setDraggedTask({ task, fromColumnId: columnId });
   };
 
   const handleTaskDrop = (toColumnId: string, toIndex?: number) => {
-  if (!draggedTask) return;
-  const { task, fromColumnId } = draggedTask;
+    if (!draggedTask) return;
+    const { task, fromColumnId } = draggedTask;
 
-  setColumns(prev => {
-    // ลบออกจาก column เดิมก่อน
-    const withoutTask = prev.map(col =>
-      col.id === fromColumnId
-        ? { ...col, tasks: col.tasks.filter(t => t.id !== task.id) }
-        : col
-    );
-
-    
-    return withoutTask.map(col => {
-      if (col.id !== toColumnId) return col;
-      const newTasks = [...col.tasks];
-      const insertAt = toIndex !== undefined ? toIndex : newTasks.length;
-      newTasks.splice(insertAt, 0, task);
-      return { ...col, tasks: newTasks };
+    setColumns(prev => {
+      const withoutTask = prev.map(col =>
+        col.id === fromColumnId
+          ? { ...col, tasks: col.tasks.filter(t => t.id !== task.id) }
+          : col
+      );
+      return withoutTask.map(col => {
+        if (col.id !== toColumnId) return col;
+        const newTasks = [...col.tasks];
+        const insertAt = toIndex !== undefined ? toIndex : newTasks.length;
+        newTasks.splice(insertAt, 0, task);
+        return { ...col, tasks: newTasks };
+      });
     });
-  });
 
-  setDraggedTask(null);
-};
+    setDraggedTask(null);
+  };
 
   const handleColumnDragStart = (columnId: string) => setDraggedColumnId(columnId);
 
@@ -145,7 +150,6 @@ export function useBoardState(initialBoardName: string) {
   const handleBack = () => navigate('/home');
 
   return {
-    // state
     boardName,
     setBoardName,
     isEditingBoardName,
@@ -153,7 +157,6 @@ export function useBoardState(initialBoardName: string) {
     columns,
     draggedTask,
     draggedColumnId,
-    // handlers
     handleSaveBoardName,
     handleAddColumn,
     handleSaveColumnTitle,
@@ -162,11 +165,11 @@ export function useBoardState(initialBoardName: string) {
     handleMoveColumn,
     handleAddCard,
     handleDeleteCard,
+    handleUpdateCardContent,
     handleTaskDragStart,
     handleTaskDrop,
     handleColumnDragStart,
     handleColumnDrop,
     handleBack,
-    
   };
 }
