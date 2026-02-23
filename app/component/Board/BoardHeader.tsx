@@ -10,11 +10,12 @@ interface Props {
   onSave: () => void;
   onCancel: () => void;
   onOpenPrivacy: () => void;
+  onOpenShare: () => void;
 }
 
 export default function BoardHeader({
   boardName, isEditing, initialBoardName, privacy,
-  onChange, onStartEdit, onSave, onCancel, onOpenPrivacy,
+  onChange, onStartEdit, onSave, onCancel, onOpenPrivacy, onOpenShare,
 }: Props) {
   return (
     <header className="bg-gray-300 p-6 rounded-b-3xl">
@@ -63,7 +64,9 @@ export default function BoardHeader({
           </button>
 
           {/* ปุ่ม share */}
-          <button className="bg-white px-8 py-3 rounded-full hover:bg-gray-100 transition flex items-center gap-2 font-semibold cursor-pointer">
+          <button
+            onClick={onOpenShare}
+            className="bg-white px-8 py-3 rounded-full hover:bg-gray-100 transition flex items-center gap-2 font-semibold cursor-pointer">
             <i className="fi fi-rr-user-add text-xl"></i>
             <span className="text-lg">share</span>
           </button>

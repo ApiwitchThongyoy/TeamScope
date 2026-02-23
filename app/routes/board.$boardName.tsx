@@ -8,12 +8,14 @@ import AddColumnButton from '~/component/Board/AddColumnButton';
 import BottomNav from '~/component/Board/BottomNav';
 import ContributionPanel from '~/component/Board/ContributionPanel';
 import PrivacyPanel from '~/component/Board/Privacypanel';
+import SharePanel from '~/component/Board/Sharepanel';
 
 export default function Dashboard() {
   const params = useParams();
   const initialBoardName = decodeURIComponent(params.boardName || '');
   const [showContribution, setShowContribution] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [privacy, setPrivacy] = useState<'private' | 'public'>('private');
 
   const {
@@ -68,6 +70,7 @@ export default function Dashboard() {
             setIsEditingBoardName(false);
           }}
           onOpenPrivacy={() => setShowPrivacy(true)}
+          onOpenShare={() => setShowShare(true)}
         />
 
         <div className="p-6">
@@ -114,6 +117,11 @@ export default function Dashboard() {
         onClose={() => setShowPrivacy(false)}
         privacy={privacy}
         onChangePrivacy={(p) => setPrivacy(p)}
+      />
+
+      <SharePanel
+        isOpen={showShare}
+        onClose={() => setShowShare(false)}
       />
     </div>
   );
