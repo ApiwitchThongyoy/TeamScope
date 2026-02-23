@@ -7,11 +7,14 @@ import ColumnCard from '~/component/Board/ColumnCard';
 import AddColumnButton from '~/component/Board/AddColumnButton';
 import BottomNav from '~/component/Board/BottomNav';
 import ContributionPanel from '~/component/Board/ContributionPanel';
+import PrivacyPanel from '~/component/Board/Privacypanel';
 
 export default function Dashboard() {
   const params = useParams();
   const initialBoardName = decodeURIComponent(params.boardName || '');
   const [showContribution, setShowContribution] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [privacy, setPrivacy] = useState<'private' | 'public'>('private');
 
   const {
     boardName,
@@ -56,6 +59,7 @@ export default function Dashboard() {
           boardName={boardName}
           isEditing={isEditingBoardName}
           initialBoardName={initialBoardName}
+          privacy={privacy}
           onChange={setBoardName}
           onStartEdit={() => setIsEditingBoardName(true)}
           onSave={handleSaveBoardName}
@@ -63,6 +67,7 @@ export default function Dashboard() {
             setBoardName(initialBoardName);
             setIsEditingBoardName(false);
           }}
+          onOpenPrivacy={() => setShowPrivacy(true)}
         />
 
         <div className="p-6">
@@ -102,6 +107,13 @@ export default function Dashboard() {
         isOpen={showContribution}
         onClose={() => setShowContribution(false)}
         columns={columns}
+      />
+
+      <PrivacyPanel
+        isOpen={showPrivacy}
+        onClose={() => setShowPrivacy(false)}
+        privacy={privacy}
+        onChangePrivacy={(p) => setPrivacy(p)}
       />
     </div>
   );
