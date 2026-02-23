@@ -77,12 +77,12 @@ export default function Login() {
 
         <div className="flex flex-col items-center mb-8">
           <img
-            src="/logo.png"
+            src="/public/icon.svg"
             alt="Logo"
             className="h-14 w-auto mb-3 object-contain"
             onError={(e) => (e.currentTarget.style.display = "none")}
           />
-          <h1 className="text-2xl font-bold text-slate-800">Welcome Back</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Welcome To TEAMSCOPE</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to your account</p>
         </div>
 
