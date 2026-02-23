@@ -56,7 +56,7 @@ export default function UserMenu() {
       {/* Avatar Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm hover:shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
+        className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-sm hover:shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
         title={displayName}
       >
         {initial}
@@ -68,7 +68,7 @@ export default function UserMenu() {
           {/* User Info */}
           <div className="px-4 py-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
                 {initial}
               </div>
               <div className="min-w-0">

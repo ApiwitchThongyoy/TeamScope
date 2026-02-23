@@ -209,7 +209,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
 
                   <div className="flex gap-3 pl-2">
                     {/* Icon */}
-                    <div className={`w-10 h-10 rounded-full ${getNotificationColor(notification.type)} border flex items-center justify-center flex-shrink-0`}>
+                    <div className={`w-10 h-10 rounded-full ${getNotificationColor(notification.type)} border flex items-center justify-center shrink-0`}>
                       <i className={`fi ${getNotificationIcon(notification.type)} ${getIconColor(notification.type)}`}></i>
                     </div>
 
@@ -221,7 +221,7 @@ export default function NotificationPanel({ isOpen, onClose }: NotificationPanel
                         </h4>
                         <button
                           onClick={() => handleDelete(notification.id)}
-                          className="opacity-0 group-hover:opacity-100 hover:bg-red-100 p-1 rounded transition flex-shrink-0"
+                          className="opacity-0 group-hover:opacity-100 hover:bg-red-100 p-1 rounded transition shrink-0"
                         >
                           <i className="fi fi-rr-trash text-xs text-red-500"></i>
                         </button>
