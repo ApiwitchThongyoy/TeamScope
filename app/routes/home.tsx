@@ -185,7 +185,7 @@ export default function Home() {
             </button>
 
             <button
-              onClick={() => setSectionOrder('default')}
+              onClick={() => navigate('/setting')}
               className="p-4 hover:bg-gray-300 rounded-lg transition w-full flex items-center gap-4 cursor-pointer"
             >
               <i className="fi fi-ss-settings text-3xl md:text-4xl shrink-0"></i>
