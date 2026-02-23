@@ -6,7 +6,7 @@ import BoardHeader from '~/component/Board/BoardHeader';
 import ColumnCard from '~/component/Board/ColumnCard';
 import AddColumnButton from '~/component/Board/AddColumnButton';
 import BottomNav from '~/component/Board/BottomNav';
-import ContributionPanel from '~/component/Board/ContributionPanel';
+import ContributionPanel from '~/component/Board/Contributionpanel';
 import PrivacyPanel from '~/component/Board/Privacypanel';
 import SharePanel from '~/component/Board/Sharepanel';
 import SwitchBoardPanel from '~/component/Board/Switchboardpanel ';
