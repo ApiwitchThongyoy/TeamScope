@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 
 interface CreateBoardProps {
@@ -21,7 +19,7 @@ export default function CreateBoard({ onClose, onSave }: CreateBoardProps) {
 
   return (
     <div 
-      className="fixed inset-0  flex items-center justify-center z-9999"
+      className="fixed inset-0 flex items-center justify-center z-9999"
       onClick={onClose}
     >
       <div 
@@ -29,7 +27,6 @@ export default function CreateBoard({ onClose, onSave }: CreateBoardProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-white rounded-3xl p-8">
-   
           <div className="flex items-center gap-4 mb-6">
             <label className="text-2xl font-semibold whitespace-nowrap">
               Board Name :
@@ -43,7 +40,6 @@ export default function CreateBoard({ onClose, onSave }: CreateBoardProps) {
             />
           </div>
 
-     
           <div className="flex items-start gap-4 mb-6">
             <label className="text-2xl font-semibold whitespace-nowrap pt-3">
               Description
@@ -51,19 +47,17 @@ export default function CreateBoard({ onClose, onSave }: CreateBoardProps) {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="flex-1 bg-gray-200 rounded-3xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-30 resize-none"
+              className="flex-1 bg-gray-200 rounded-3xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-120px resize-none"
               placeholder="กรอกรายละเอียด"
             />
           </div>
 
           <div className="mb-8">
-            <label className="text-2xl font-semibold">privacy</label>
+            <label className="text-2xl font-semibold">Privacy</label>
             <div className="flex gap-4 mt-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  type="radio"
-                  name="privacy"
-                  value="public"
+                  type="radio" name="privacy" value="public"
                   checked={privacy === 'public'}
                   onChange={(e) => setPrivacy(e.target.value)}
                   className="w-5 h-5 cursor-pointer"
@@ -72,9 +66,7 @@ export default function CreateBoard({ onClose, onSave }: CreateBoardProps) {
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  type="radio"
-                  name="privacy"
-                  value="private"
+                  type="radio" name="privacy" value="private"
                   checked={privacy === 'private'}
                   onChange={(e) => setPrivacy(e.target.value)}
                   className="w-5 h-5 cursor-pointer"
@@ -84,18 +76,13 @@ export default function CreateBoard({ onClose, onSave }: CreateBoardProps) {
             </div>
           </div>
 
- 
           <div className="flex justify-end gap-4">
-            <button
-              onClick={handleSave}
-              className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer"
-            >
+            <button onClick={handleSave}
+              className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer">
               <i className="fi fi-br-check text-3xl"></i>
             </button>
-            <button
-              onClick={onClose}
-              className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer"
-            >
+            <button onClick={onClose}
+              className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer">
               <i className="fi fi-br-cross text-3xl"></i>
             </button>
           </div>

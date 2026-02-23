@@ -1,10 +1,10 @@
 import { useParams } from 'react-router';
-import { useBoardState } from '~/component/Board/useBoardState';
-import BoardNavbar from '~/component/Board/BoardNavbar';
-import BoardHeader from '~/component/Board/BoardHeader';
-import ColumnCard from '~/component/Board/ColumnCard';
-import AddColumnButton from '~/component/Board/AddColumnButton';
-import BottomNav from '~/component/Board/BottomNav';
+import { useBoardState } from '../component/Board/useBoardState';
+import BoardNavbar from '../component/Board/BoardNavbar';
+import BoardHeader from '../component/Board/BoardHeader';
+import ColumnCard from '../component/Board/ColumnCard';
+import AddColumnButton from '../component/Board/AddColumnButton';
+import BottomNav from '../component/Board/BottomNav';
 
 export default function Dashboard() {
   const params = useParams();

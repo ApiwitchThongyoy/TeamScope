@@ -6,4 +6,5 @@ export default function BottomNav() {
       <button className="text-lg hover:text-blue-500 transition cursor-pointer">สลับบอร์ด</button>
     </div>
   );
+  
 }
