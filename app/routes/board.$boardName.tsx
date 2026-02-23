@@ -9,6 +9,7 @@ import BottomNav from '~/component/Board/BottomNav';
 import ContributionPanel from '~/component/Board/ContributionPanel';
 import PrivacyPanel from '~/component/Board/Privacypanel';
 import SharePanel from '~/component/Board/Sharepanel';
+import SwitchBoardPanel from '~/component/Board/Switchboardpanel ';
 
 export default function Dashboard() {
   const params = useParams();
@@ -16,6 +17,7 @@ export default function Dashboard() {
   const [showContribution, setShowContribution] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showSwitchBoard, setShowSwitchBoard] = useState(false);
   const [privacy, setPrivacy] = useState<'private' | 'public'>('private');
 
   const {
@@ -104,7 +106,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <BottomNav onContribution={() => setShowContribution(true)} />
+      <BottomNav
+        onContribution={() => setShowContribution(true)}
+        onSwitchBoard={() => setShowSwitchBoard(true)}
+      />
 
       <ContributionPanel
         isOpen={showContribution}
@@ -122,6 +127,13 @@ export default function Dashboard() {
       <SharePanel
         isOpen={showShare}
         onClose={() => setShowShare(false)}
+        boardName={boardName}
+      />
+
+      <SwitchBoardPanel
+        isOpen={showSwitchBoard}
+        onClose={() => setShowSwitchBoard(false)}
+        currentBoardName={boardName}
       />
     </div>
   );

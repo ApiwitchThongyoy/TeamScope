@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react';
 
-interface Member {
+// ---- types ที่ sync กับ MembersSection ----
+interface StoredMember {
   id: string;
-  name: string;
   email: string;
+  boardName: string;
+  role: 'owner' | 'member';
+}
+
+// ---- type เพิ่มเติมสำหรับแสดงผลใน panel ----
+interface DisplayMember {
+  id: string;
+  email: string;
+  boardName: string;
+  role: 'owner' | 'member';
   avatar: string;
   color: string;
-  role: 'owner' | 'editor' | 'viewer';
   isYou?: boolean;
 }
 
@@ -22,10 +31,12 @@ interface JoinRequest {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  boardName: string; // ส่ง boardName มาเพื่อบันทึกลง localStorage
 }
 
-const INITIAL_MEMBERS: Member[] = [
-  { id: '0', name: 'คุณ (Del Kung)', email: 'delkung@example.com', avatar: 'D', color: 'bg-purple-500', role: 'owner', isYou: true },
+const AVATAR_COLORS = [
+  'bg-purple-500', 'bg-blue-500', 'bg-green-500',
+  'bg-orange-500', 'bg-red-500', 'bg-pink-500', 'bg-teal-500', 'bg-indigo-500',
 ];
 
 const MOCK_REQUESTS: JoinRequest[] = [
@@ -35,68 +46,100 @@ const MOCK_REQUESTS: JoinRequest[] = [
 
 const ROLE_LABELS: Record<string, string> = {
   owner: 'เจ้าของ',
-  editor: 'แก้ไขได้',
-  viewer: 'ดูได้',
+  member: 'สมาชิก',
 };
-
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-100 text-purple-700',
-  editor: 'bg-blue-100 text-blue-700',
-  viewer: 'bg-gray-100 text-gray-600',
+  member: 'bg-blue-100 text-blue-700',
 };
 
 type Tab = 'members' | 'requests';
 
-export default function SharePanel({ isOpen, onClose }: Props) {
+// helper สร้าง DisplayMember จาก StoredMember
+function toDisplay(m: StoredMember, idx: number): DisplayMember {
+  return {
+    ...m,
+    avatar: m.email.charAt(0).toUpperCase(),
+    color: AVATAR_COLORS[idx % AVATAR_COLORS.length],
+  };
+}
+
+// อ่าน/เขียน localStorage
+function loadMembers(): StoredMember[] {
+  try {
+    return JSON.parse(localStorage.getItem('teamMembers') || '[]');
+  } catch { return []; }
+}
+
+function saveMembers(members: StoredMember[]) {
+  localStorage.setItem('teamMembers', JSON.stringify(members));
+}
+
+export default function SharePanel({ isOpen, onClose, boardName }: Props) {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('members');
   const [searchValue, setSearchValue] = useState('');
-  const [members, setMembers] = useState<Member[]>(INITIAL_MEMBERS);
+  const [members, setMembers] = useState<StoredMember[]>([]);
   const [requests, setRequests] = useState<JoinRequest[]>(MOCK_REQUESTS);
-  const [inviteRole, setInviteRole] = useState<'editor' | 'viewer'>('editor');
   const [inviteSent, setInviteSent] = useState<string | null>(null);
   const [showRoleMenu, setShowRoleMenu] = useState<string | null>(null);
 
+  // โหลดสมาชิกจาก localStorage ทุกครั้งที่เปิด panel
   useEffect(() => {
-    if (isOpen) setTimeout(() => setMounted(true), 10);
-    else { setMounted(false); setInviteSent(null); setSearchValue(''); }
+    if (isOpen) {
+      setMembers(loadMembers());
+      setTimeout(() => setMounted(true), 10);
+    } else {
+      setMounted(false);
+      setInviteSent(null);
+      setSearchValue('');
+      setActiveTab('members');
+    }
   }, [isOpen]);
 
+  const updateMembers = (updated: StoredMember[]) => {
+    setMembers(updated);
+    saveMembers(updated);
+  };
+
   const handleInvite = () => {
-    if (!searchValue.trim()) return;
-    const newMember: Member = {
+    const email = searchValue.trim();
+    if (!email) return;
+    // ตรวจซ้ำ
+    if (members.some(m => m.email.toLowerCase() === email.toLowerCase())) {
+      setInviteSent(`"${email}" เป็นสมาชิกอยู่แล้ว`);
+      setTimeout(() => setInviteSent(null), 3000);
+      return;
+    }
+    const newMember: StoredMember = {
       id: Date.now().toString(),
-      name: searchValue.includes('@') ? searchValue.split('@')[0] : searchValue,
-      email: searchValue.includes('@') ? searchValue : `${searchValue}@example.com`,
-      avatar: searchValue[0].toUpperCase(),
-      color: ['bg-orange-500', 'bg-pink-500', 'bg-teal-500', 'bg-indigo-500'][Math.floor(Math.random() * 4)],
-      role: inviteRole,
+      email,
+      boardName,
+      role: 'member',
     };
-    setMembers(prev => [...prev, newMember]);
-    setInviteSent(searchValue);
+    updateMembers([...members, newMember]);
+    setInviteSent(email);
     setSearchValue('');
     setTimeout(() => setInviteSent(null), 3000);
   };
 
-  const handleRemoveMember = (id: string) => {
-    setMembers(prev => prev.filter(m => m.id !== id));
+  const handleRemove = (id: string) => {
+    updateMembers(members.filter(m => m.id !== id));
   };
 
-  const handleChangeRole = (id: string, role: 'editor' | 'viewer') => {
-    setMembers(prev => prev.map(m => m.id === id ? { ...m, role } : m));
+  const handleChangeRole = (id: string, role: 'owner' | 'member') => {
+    updateMembers(members.map(m => m.id === id ? { ...m, role } : m));
     setShowRoleMenu(null);
   };
 
   const handleAcceptRequest = (req: JoinRequest) => {
-    const newMember: Member = {
+    const newMember: StoredMember = {
       id: req.id,
-      name: req.name,
       email: req.email,
-      avatar: req.avatar,
-      color: req.color,
-      role: 'editor',
+      boardName,
+      role: 'member',
     };
-    setMembers(prev => [...prev, newMember]);
+    updateMembers([...members, newMember]);
     setRequests(prev => prev.filter(r => r.id !== req.id));
   };
 
@@ -110,6 +153,8 @@ export default function SharePanel({ isOpen, onClose }: Props) {
     if (diff < 86400) return `${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`;
     return `${Math.floor(diff / 86400)} วันที่แล้ว`;
   };
+
+  const displayMembers = members.map((m, i) => toDisplay(m, i));
 
   if (!isOpen) return null;
 
@@ -143,7 +188,7 @@ export default function SharePanel({ isOpen, onClose }: Props) {
           <p className="text-sm font-semibold text-gray-700 mb-2">เชิญสมาชิก</p>
           <div className="flex gap-2">
             <div className="flex-1 relative">
-              <i className="fi fi-rr-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+              <i className="fi fi-rr-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
               <input
                 type="text"
                 value={searchValue}
@@ -153,15 +198,6 @@ export default function SharePanel({ isOpen, onClose }: Props) {
                 className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 bg-gray-50"
               />
             </div>
-            {/* Role selector */}
-            <select
-              value={inviteRole}
-              onChange={e => setInviteRole(e.target.value as 'editor' | 'viewer')}
-              className="border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-none focus:border-blue-400 bg-gray-50 cursor-pointer"
-            >
-              <option value="editor">แก้ไขได้</option>
-              <option value="viewer">ดูได้</option>
-            </select>
             <button
               onClick={handleInvite}
               disabled={!searchValue.trim()}
@@ -171,11 +207,11 @@ export default function SharePanel({ isOpen, onClose }: Props) {
             </button>
           </div>
 
-          {/* Success message */}
+          {/* Feedback */}
           {inviteSent && (
-            <div className="mt-2 flex items-center gap-2 text-green-600 text-xs">
-              <i className="fi fi-rr-check-circle"></i>
-              <span>ส่งคำเชิญถึง <strong>{inviteSent}</strong> แล้ว</span>
+            <div className={`mt-2 flex items-center gap-2 text-xs ${inviteSent.includes('อยู่แล้ว') ? 'text-orange-500' : 'text-green-600'}`}>
+              <i className={`fi ${inviteSent.includes('อยู่แล้ว') ? 'fi-rr-exclamation' : 'fi-rr-check-circle'}`}></i>
+              <span>{inviteSent.includes('อยู่แล้ว') ? inviteSent : `ส่งคำเชิญถึง "${inviteSent}" แล้ว`}</span>
             </div>
           )}
         </div>
@@ -207,62 +243,71 @@ export default function SharePanel({ isOpen, onClose }: Props) {
 
           {/* ===== MEMBERS TAB ===== */}
           {activeTab === 'members' && (
-            <div className="space-y-2">
-              {members.map(member => (
-                <div key={member.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition group">
-                  {/* Avatar */}
-                  <div className={`w-10 h-10 rounded-full ${member.color} flex items-center justify-center text-white font-bold shrink-0`}>
-                    {member.avatar}
+            <>
+              {displayMembers.length === 0 ? (
+                <div className="text-center py-14">
+                  <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                    <i className="fi fi-rr-users text-gray-300 text-2xl"></i>
                   </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-700 truncate">{member.name}</p>
-                      {member.isYou && <span className="text-xs text-gray-400">(คุณ)</span>}
-                    </div>
-                    <p className="text-xs text-gray-400 truncate">{member.email}</p>
-                  </div>
-
-                  {/* Role badge / dropdown */}
-                  <div className="relative shrink-0" onClick={e => e.stopPropagation()}>
-                    {member.role === 'owner' ? (
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${ROLE_COLORS['owner']}`}>
-                        {ROLE_LABELS['owner']}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setShowRoleMenu(showRoleMenu === member.id ? null : member.id)}
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 transition cursor-pointer ${ROLE_COLORS[member.role]}`}
-                      >
-                        {ROLE_LABELS[member.role]}
-                        <i className="fi fi-rr-angle-small-down" style={{ fontSize: '10px' }}></i>
-                      </button>
-                    )}
-
-                    {showRoleMenu === member.id && (
-                      <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-xl shadow-lg z-10 w-36 py-1 overflow-hidden">
-                        <button onClick={() => handleChangeRole(member.id, 'editor')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between">
-                          <span>แก้ไขได้</span>
-                          {member.role === 'editor' && <i className="fi fi-rr-check text-blue-500 text-xs"></i>}
-                        </button>
-                        <button onClick={() => handleChangeRole(member.id, 'viewer')}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between">
-                          <span>ดูได้</span>
-                          {member.role === 'viewer' && <i className="fi fi-rr-check text-blue-500 text-xs"></i>}
-                        </button>
-                        <hr className="my-1 border-gray-100" />
-                        <button onClick={() => handleRemoveMember(member.id)}
-                          className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50">
-                          นำออกจากทีม
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-sm text-gray-500 font-medium">ยังไม่มีสมาชิก</p>
+                  <p className="text-xs text-gray-400 mt-1">เชิญสมาชิกด้วยอีเมลด้านบน</p>
                 </div>
-              ))}
-            </div>
+              ) : (
+                <div className="space-y-1">
+                  {displayMembers.map(member => (
+                    <div key={member.id} className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition group">
+                      {/* Avatar */}
+                      <div className={`w-10 h-10 rounded-full ${member.color} flex items-center justify-center text-white font-bold shrink-0`}>
+                        {member.avatar}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-700 truncate">{member.email}</p>
+                        <p className="text-xs text-gray-400 truncate">{member.boardName}</p>
+                      </div>
+
+                      {/* Role + remove */}
+                      <div className="relative shrink-0 flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => setShowRoleMenu(showRoleMenu === member.id ? null : member.id)}
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium flex items-center gap-1 cursor-pointer ${ROLE_COLORS[member.role]}`}
+                        >
+                          {ROLE_LABELS[member.role]}
+                          <i className="fi fi-rr-angle-small-down" style={{ fontSize: '10px' }}></i>
+                        </button>
+
+                        {showRoleMenu === member.id && (
+                          <div className="absolute right-0 top-8 bg-white border border-gray-100 rounded-xl shadow-lg z-10 w-36 py-1 overflow-hidden">
+                            <button onClick={() => handleChangeRole(member.id, 'owner')}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between">
+                              <span>เจ้าของ</span>
+                              {member.role === 'owner' && <i className="fi fi-rr-check text-blue-500 text-xs"></i>}
+                            </button>
+                            <button onClick={() => handleChangeRole(member.id, 'member')}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between">
+                              <span>สมาชิก</span>
+                              {member.role === 'member' && <i className="fi fi-rr-check text-blue-500 text-xs"></i>}
+                            </button>
+                            <hr className="my-1 border-gray-100" />
+                            <button onClick={() => handleRemove(member.id)}
+                              className="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50">
+                              นำออกจากทีม
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* hint ว่า sync กับ settings */}
+              <div className="mt-4 flex items-center gap-2 bg-blue-50 rounded-xl px-3 py-2.5">
+                <i className="fi fi-rr-link text-blue-400 text-sm shrink-0"></i>
+                <p className="text-xs text-blue-600">รายชื่อนี้ sync กับหน้า Settings → Members อัตโนมัติ</p>
+              </div>
+            </>
           )}
 
           {/* ===== REQUESTS TAB ===== */}
