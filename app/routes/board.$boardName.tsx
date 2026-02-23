@@ -25,6 +25,8 @@ export default function Dashboard() {
     handleMoveColumn,
     handleAddCard,
     handleDeleteCard,
+    handleUpdateTask,
+    handleToggleTaskDone,
     handleTaskDragStart,
     handleTaskDrop,
     handleColumnDragStart,
@@ -34,7 +36,6 @@ export default function Dashboard() {
 
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
-  // แยกออกเป็น 2 ฟังก์ชัน ไม่รวมกัน
   const handleTaskDropOnly = (columnId: string, toIndex?: number) => {
     handleTaskDrop(columnId, toIndex);
   };
@@ -81,6 +82,8 @@ export default function Dashboard() {
                   onDragOver={handleDragOver}
                   onDrop={handleTaskDropOnly}
                   onColumnDrop={handleColumnDropOnly}
+                  onUpdateTask={handleUpdateTask}
+                  onToggleTaskDone={handleToggleTaskDone}
                 />
               ))}
 

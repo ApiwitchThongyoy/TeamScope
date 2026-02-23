@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import type { Task } from '../Board/types';
+import type { Task, TaskMember, TaskAttachment } from '../Board/types';
 
 interface Comment {
   id: string;
@@ -8,30 +8,15 @@ interface Comment {
   createdAt: Date;
 }
 
-interface Member {
-  id: string;
-  name: string;
-  avatar: string;
-  color: string;
-}
-
-interface AttachedFile {
-  id: string;
-  name: string;
-  size: string;
-  previewUrl?: string;
-  fileType: string;
-}
-
 interface Props {
   task: Task;
   columnTitle: string;
   onClose: () => void;
-  onUpdateContent: (taskId: string, newContent: string) => void;
+  onUpdateTask: (taskId: string, updates: Partial<Task>) => void;
   onToggleDone: (taskId: string, isDone: boolean) => void;
 }
 
-const MOCK_MEMBERS: Member[] = [
+const MOCK_MEMBERS: TaskMember[] = [
   { id: '1', name: 'Del Kung', avatar: 'D', color: 'bg-purple-500' },
   { id: '2', name: 'Somchai Thai', avatar: 'S', color: 'bg-blue-500' },
   { id: '3', name: 'Malee Jaidee', avatar: 'M', color: 'bg-green-500' },
@@ -47,7 +32,7 @@ const getFileIcon = (type: string) => {
   return 'fi-rr-document';
 };
 
-export default function CardModal({ task, columnTitle, onClose, onUpdateContent, onToggleDone }: Props) {
+export default function CardModal({ task, columnTitle, onClose, onUpdateTask, onToggleDone }: Props) {
   const [description, setDescription] = useState('');
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -58,16 +43,19 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
 
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(task.startDate ?? '');
+  const [startTime, setStartTime] = useState(task.startTime ?? '');
+  const [endDate, setEndDate] = useState(task.endDate ?? '');
+  const [endTime, setEndTime] = useState(task.endTime ?? '');
+
   const [showMemberPicker, setShowMemberPicker] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
-  const [assignedMembers, setAssignedMembers] = useState<Member[]>([]);
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [assignedMembers, setAssignedMembers] = useState<TaskMember[]>(task.members ?? []);
+  const [attachedFiles, setAttachedFiles] = useState<TaskAttachment[]>(task.attachments ?? []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveTitle = () => {
-    if (titleValue.trim()) onUpdateContent(task.id, titleValue);
+    if (titleValue.trim()) onUpdateTask(task.id, { content: titleValue });
     setIsEditingTitle(false);
   };
 
@@ -75,6 +63,25 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
     const newVal = !isDone;
     setIsDone(newVal);
     onToggleDone(task.id, newVal);
+  };
+
+  const handleSaveDate = () => {
+    onUpdateTask(task.id, { startDate, startTime, endDate, endTime });
+    setShowDatePicker(false);
+  };
+
+  const handleClearDate = () => {
+    setStartDate(''); setStartTime(''); setEndDate(''); setEndTime('');
+    onUpdateTask(task.id, { startDate: '', startTime: '', endDate: '', endTime: '' });
+    setShowDatePicker(false);
+  };
+
+  const toggleMember = (member: TaskMember) => {
+    const newMembers = assignedMembers.find(m => m.id === member.id)
+      ? assignedMembers.filter(m => m.id !== member.id)
+      : [...assignedMembers, member];
+    setAssignedMembers(newMembers);
+    onUpdateTask(task.id, { members: newMembers });
   };
 
   const handleAddComment = () => {
@@ -96,32 +103,33 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
     return date.toLocaleDateString('th-TH');
   };
 
-  const formatDate = (date: string) => {
+  const formatDate = (date: string, time?: string) => {
     if (!date) return '';
-    return new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+    const d = new Date(date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+    return time ? `${d} ${time}` : d;
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const newFiles: AttachedFile[] = Array.from(files).map(f => ({
+    const newFiles: TaskAttachment[] = Array.from(files).map(f => ({
       id: Date.now().toString() + Math.random(),
       name: f.name,
       size: `${(f.size / 1024).toFixed(1)} KB`,
       fileType: f.type,
       previewUrl: f.type.startsWith('image/') ? URL.createObjectURL(f) : undefined,
     }));
-    setAttachedFiles(prev => [...prev, ...newFiles]);
+    const updated = [...attachedFiles, ...newFiles];
+    setAttachedFiles(updated);
+    onUpdateTask(task.id, { attachments: updated });
     setShowAddMenu(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const toggleMember = (member: Member) => {
-    setAssignedMembers(prev =>
-      prev.find(m => m.id === member.id)
-        ? prev.filter(m => m.id !== member.id)
-        : [...prev, member]
-    );
+  const handleDeleteFile = (fileId: string) => {
+    const updated = attachedFiles.filter(f => f.id !== fileId);
+    setAttachedFiles(updated);
+    onUpdateTask(task.id, { attachments: updated });
   };
 
   const filteredMembers = MOCK_MEMBERS.filter(m =>
@@ -134,23 +142,17 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
     setShowMemberPicker(false);
   };
 
+  const hasDate = startDate || endDate;
+
   return (
-    <div
-      className="fixed inset-0 bg-black/40 z-60 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 bg-black/40 z-60 flex items-center justify-center p-4" onClick={onClose}>
       {(showAddMenu || showDatePicker || showMemberPicker) && (
-        <div
-          className="fixed inset-0 z-61"
-          onClick={(e) => { e.stopPropagation(); closeAllDropdowns(); }}
-        />
+        <div className="fixed inset-0 z-61" onClick={(e) => { e.stopPropagation(); closeAllDropdowns(); }} />
       )}
 
-      <div
-        className="bg-white rounded-2xl w-full max-w-5xl  h-[70vh] flex flex-col relative z-62"
-        onClick={(e) => e.stopPropagation()}
-      >
-    
+      <div className="bg-white rounded-2xl w-full max-w-5xl h-[80vh] flex flex-col relative z-62" onClick={(e) => e.stopPropagation()}>
+
+        {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span className="font-medium text-gray-700">{columnTitle}</span>
@@ -169,63 +171,48 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
           </div>
         </div>
 
-       
         <div className="flex flex-1 min-h-0">
-
-        
+          {/* Left */}
           <div className="flex-1 overflow-y-auto px-8 py-6 min-w-0">
 
-           
+            {/* Title */}
             <div className="flex items-start gap-3 mb-5">
-          
-              <button
-                onClick={handleToggleDone}
-                className="mt-1 shrink-0 transition cursor-pointer"
-                title={isDone ? 'ยกเลิกเสร็จสิ้น' : 'ทำเครื่องหมายว่าเสร็จ'}
-              >
+              <button onClick={handleToggleDone} className="mt-1 shrink-0 cursor-pointer">
                 {isDone ? (
-                  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
-                    <i className="fi fi-rr-check text-white text-xs"></i>
+                  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shadow-md">
+                    <svg width="11" height="11" viewBox="0 0 10 10" fill="none">
+                      <path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </div>
                 ) : (
                   <div className="w-6 h-6 rounded-full border-2 border-gray-300 hover:border-green-400 transition" />
                 )}
               </button>
-
               {isEditingTitle ? (
-                <input
-                  type="text"
-                  value={titleValue}
+                <input type="text" value={titleValue}
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleSaveTitle}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSaveTitle();
                     if (e.key === 'Escape') { setTitleValue(task.content); setIsEditingTitle(false); }
                   }}
-                  className="text-xl font-bold w-full focus:outline-none border-b-2 border-blue-500"
-                  autoFocus
-                />
+                  className="text-xl font-bold w-full focus:outline-none border-b-2 border-blue-500" autoFocus />
               ) : (
-                <h2
-                  onClick={() => setIsEditingTitle(true)}
-                  className="text-xl font-bold cursor-pointer hover:bg-gray-100 px-1 rounded transition w-full wrap-break-words"
-                >
+                <h2 onClick={() => setIsEditingTitle(true)}
+                  className="text-xl font-bold cursor-pointer hover:bg-gray-100 px-1 rounded transition w-full wrap-break-words">
                   {titleValue}
                 </h2>
               )}
             </div>
 
-         
+            {/* Action buttons */}
             <div className="flex flex-wrap gap-2 mb-5 ml-9">
 
-             
+              {/* เพิ่ม */}
               <div className="relative">
-                <button
-                  onClick={() => { closeAllDropdowns(); setShowAddMenu(prev => !prev); }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition cursor-pointer"
-                >
-                  <i className="fi fi-rr-plus text-xs"></i>
-                  <span>เพิ่ม</span>
+                <button onClick={() => { closeAllDropdowns(); setShowAddMenu(p => !p); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition cursor-pointer">
+                  <i className="fi fi-rr-plus text-xs"></i><span>เพิ่ม</span>
                 </button>
                 {showAddMenu && (
                   <div className="absolute top-9 left-0 bg-white border rounded-xl shadow-lg z-63 w-40 py-1">
@@ -246,53 +233,51 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
                 <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileChange} />
               </div>
 
-              {/* ปุ่มวันที่ */}
+              {/* วันที่ */}
               <div className="relative">
-                <button
-                  onClick={() => { closeAllDropdowns(); setShowDatePicker(prev => !prev); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition cursor-pointer ${startDate || endDate ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'}`}
-                >
+                <button onClick={() => { closeAllDropdowns(); setShowDatePicker(p => !p); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition cursor-pointer ${hasDate ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   <i className="fi fi-rr-clock text-xs"></i>
-                  <span>{startDate || endDate ? `${formatDate(startDate)}${endDate ? ` → ${formatDate(endDate)}` : ''}` : 'ลงวันที่'}</span>
+                  <span>{hasDate ? `${formatDate(startDate, startTime)}${endDate ? ` → ${formatDate(endDate, endTime)}` : ''}` : 'ลงวันที่'}</span>
                 </button>
                 {showDatePicker && (
-                  <div className="absolute top-9 left-0 bg-white border rounded-xl shadow-lg z-63 p-3 w-60">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold text-gray-700">กำหนดวันที่</p>
+                  <div className="absolute top-9 left-0 bg-white border rounded-xl shadow-lg z-63 p-3 w-64">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-gray-700">กำหนดวันที่และเวลา</p>
                       <button onClick={() => setShowDatePicker(false)} className="p-1 hover:bg-gray-100 rounded cursor-pointer">
                         <i className="fi fi-rr-cross text-gray-400 text-xs"></i>
                       </button>
                     </div>
-                    <div className="mb-2">
+                    <div className="mb-3">
                       <label className="text-xs text-gray-500 mb-1 block">วันเริ่มต้น</label>
                       <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500 mb-1" />
+                      <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
                         className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500" />
                     </div>
                     <div className="mb-3">
                       <label className="text-xs text-gray-500 mb-1 block">วันสิ้นสุด</label>
                       <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500 mb-1" />
+                      <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
                         className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-blue-500" />
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => setShowDatePicker(false)} className="flex-1 bg-blue-500 text-white py-1 rounded-lg text-sm hover:bg-blue-600">บันทึก</button>
-                      <button onClick={() => { setStartDate(''); setEndDate(''); setShowDatePicker(false); }} className="px-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">ล้าง</button>
+                      <button onClick={handleSaveDate} className="flex-1 bg-blue-500 text-white py-1 rounded-lg text-sm hover:bg-blue-600">บันทึก</button>
+                      <button onClick={handleClearDate} className="px-2 bg-gray-100 rounded-lg text-sm hover:bg-gray-200">ล้าง</button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* ปุ่มสมาชิก */}
+              {/* สมาชิก */}
               <div className="relative">
-                <button
-                  onClick={() => { closeAllDropdowns(); setShowMemberPicker(prev => !prev); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition cursor-pointer ${assignedMembers.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'}`}
-                >
+                <button onClick={() => { closeAllDropdowns(); setShowMemberPicker(p => !p); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm transition cursor-pointer ${assignedMembers.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   {assignedMembers.length > 0 ? (
                     <div className="flex -space-x-1">
                       {assignedMembers.slice(0, 3).map(m => (
-                        <div key={m.id} className={`w-5 h-5 rounded-full ${m.color} flex items-center justify-center text-white text-xs font-bold border border-white`}>
-                          {m.avatar}
-                        </div>
+                        <div key={m.id} className={`w-5 h-5 rounded-full ${m.color} flex items-center justify-center text-white text-xs font-bold border border-white`}>{m.avatar}</div>
                       ))}
                     </div>
                   ) : <i className="fi fi-rr-user text-xs"></i>}
@@ -309,8 +294,7 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
                     <div className="px-3 pt-2 pb-1">
                       <input type="text" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)}
                         placeholder="ค้นหาชื่อ..."
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                        autoFocus />
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" autoFocus />
                     </div>
                     <div className="max-h-44 overflow-y-auto">
                       {filteredMembers.length === 0
@@ -323,7 +307,7 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
                               <div className={`w-8 h-8 rounded-full ${member.color} flex items-center justify-center text-white text-sm font-bold shrink-0`}>{member.avatar}</div>
                               <span className="text-sm flex-1">{member.name}</span>
                               {isAssigned && (
-                                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center shrink-0">
+                                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
                                   <i className="fi fi-rr-check text-white" style={{ fontSize: '8px' }}></i>
                                 </div>
                               )}
@@ -361,7 +345,7 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
                     <div key={m.id} className="flex items-center gap-1.5 bg-gray-100 rounded-full px-2 py-1">
                       <div className={`w-5 h-5 rounded-full ${m.color} flex items-center justify-center text-white text-xs font-bold`}>{m.avatar}</div>
                       <span className="text-xs">{m.name}</span>
-                      <button onClick={() => toggleMember(m)} className="text-gray-400 hover:text-red-500 transition ml-0.5">
+                      <button onClick={() => toggleMember(m)} className="text-gray-400 hover:text-red-500 ml-0.5">
                         <i className="fi fi-rr-cross-small text-xs"></i>
                       </button>
                     </div>
@@ -370,7 +354,7 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
               </div>
             )}
 
-
+            {/* ไฟล์แนบ */}
             {attachedFiles.length > 0 && (
               <div className="ml-9 mb-5">
                 <div className="flex items-center gap-2 mb-2">
@@ -379,28 +363,20 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
                 </div>
                 <div className="space-y-2">
                   {attachedFiles.map(file => (
-                    <div key={file.id} className="flex items-center gap-0 bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
-                      {/* Thumbnail */}
+                    <div key={file.id} className="flex items-center bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
                       <div className="w-20 h-14 shrink-0 bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {file.previewUrl ? (
-                          <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <i className={`fi ${getFileIcon(file.fileType)} text-gray-400 text-2xl`}></i>
-                        )}
+                        {file.previewUrl
+                          ? <img src={file.previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                          : <i className={`fi ${getFileIcon(file.fileType)} text-gray-400 text-2xl`}></i>
+                        }
                       </div>
-                      {/* Info */}
                       <div className="flex-1 min-w-0 px-3 py-2">
                         <p className="text-sm font-medium truncate text-gray-700">{file.name}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{file.size}</p>
                         <div className="flex gap-2 mt-1">
-                          <button className="text-xs text-blue-500 hover:underline cursor-pointer">ดาวน์โหลด</button>
+                          <button className="text-xs text-blue-500 hover:underline">ดาวน์โหลด</button>
                           <span className="text-gray-300">•</span>
-                          <button
-                            onClick={() => setAttachedFiles(prev => prev.filter(f => f.id !== file.id))}
-                            className="text-xs text-red-400 hover:underline cursor-pointer"
-                          >
-                            ลบ
-                          </button>
+                          <button onClick={() => handleDeleteFile(file.id)} className="text-xs text-red-400 hover:underline">ลบ</button>
                         </div>
                       </div>
                     </div>
@@ -443,20 +419,16 @@ export default function CardModal({ task, columnTitle, onClose, onUpdateContent,
                   <i className="fi fi-rr-comment text-gray-500 text-sm"></i>
                   <span className="font-semibold text-gray-700 text-sm">ความคิดเห็นและกิจกรรม</span>
                 </div>
-                <button className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 bg-gray-100 rounded-lg transition cursor-pointer">
-                  ซ่อนรายละเอียด
-                </button>
+                <button className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 bg-gray-100 rounded-lg cursor-pointer">ซ่อนรายละเอียด</button>
               </div>
               <input type="text" value={commentText} onChange={(e) => setCommentText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
                 placeholder="เขียนความคิดเห็น..."
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-blue-500 mb-4 shrink-0" />
               <div className="space-y-4">
-                {comments.map((comment) => (
+                {comments.map(comment => (
                   <div key={comment.id} className="flex gap-2">
-                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {comment.author.charAt(0)}
-                    </div>
+                    <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">{comment.author.charAt(0)}</div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold">{comment.author}</span>

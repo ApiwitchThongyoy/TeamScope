@@ -30,9 +30,7 @@ export function useBoardState(initialBoardName: string) {
 
   const handleSaveColumnTitle = (columnId: string, newTitle: string) => {
     if (newTitle.trim()) {
-      setColumns(prev =>
-        prev.map(col => (col.id === columnId ? { ...col, title: newTitle } : col))
-      );
+      setColumns(prev => prev.map(col => col.id === columnId ? { ...col, title: newTitle } : col));
     }
   };
 
@@ -62,7 +60,6 @@ export function useBoardState(initialBoardName: string) {
     const currentIndex = columns.findIndex(col => col.id === columnId);
     const targetIndex = columns.findIndex(col => col.id === targetColumnId);
     if (currentIndex === -1 || targetIndex === -1) return;
-
     const newColumns = [...columns];
     const [movedColumn] = newColumns.splice(currentIndex, 1);
     const insertIndex = direction === 'before' ? targetIndex : targetIndex + 1;
@@ -73,47 +70,34 @@ export function useBoardState(initialBoardName: string) {
 
   const handleAddCard = (columnId: string, content: string) => {
     if (content.trim()) {
-      setColumns(prev =>
-        prev.map(col =>
-          col.id === columnId
-            ? { ...col, tasks: [...col.tasks, { id: Date.now().toString(), content, isDone: false }] }
-            : col
-        )
-      );
+      setColumns(prev => prev.map(col =>
+        col.id === columnId
+          ? { ...col, tasks: [...col.tasks, { id: Date.now().toString(), content, isDone: false }] }
+          : col
+      ));
     }
   };
 
   const handleDeleteCard = (columnId: string, taskId: string) => {
-    setColumns(prev =>
-      prev.map(col =>
-        col.id === columnId
-          ? { ...col, tasks: col.tasks.filter(task => task.id !== taskId) }
-          : col
-      )
-    );
+    setColumns(prev => prev.map(col =>
+      col.id === columnId
+        ? { ...col, tasks: col.tasks.filter(task => task.id !== taskId) }
+        : col
+    ));
   };
 
-  const handleUpdateCardContent = (taskId: string, newContent: string) => {
-    setColumns(prev =>
-      prev.map(col => ({
-        ...col,
-        tasks: col.tasks.map(task =>
-          task.id === taskId ? { ...task, content: newContent } : task
-        ),
-      }))
-    );
+  // อัปเดต task ทั้งหมดรวมถึง metadata จาก CardModal
+  const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      tasks: col.tasks.map(task =>
+        task.id === taskId ? { ...task, ...updates } : task
+      ),
+    })));
   };
 
-  // toggle isDone — ใช้จาก CardModal แล้วสะท้อนกลับมาที่ TaskCard
   const handleToggleTaskDone = (taskId: string, isDone: boolean) => {
-    setColumns(prev =>
-      prev.map(col => ({
-        ...col,
-        tasks: col.tasks.map(task =>
-          task.id === taskId ? { ...task, isDone } : task
-        ),
-      }))
-    );
+    handleUpdateTask(taskId, { isDone });
   };
 
   const handleTaskDragStart = (task: Task, columnId: string) => {
@@ -123,22 +107,17 @@ export function useBoardState(initialBoardName: string) {
   const handleTaskDrop = (toColumnId: string, toIndex?: number) => {
     if (!draggedTask) return;
     const { task, fromColumnId } = draggedTask;
-
     setColumns(prev => {
       const withoutTask = prev.map(col =>
-        col.id === fromColumnId
-          ? { ...col, tasks: col.tasks.filter(t => t.id !== task.id) }
-          : col
+        col.id === fromColumnId ? { ...col, tasks: col.tasks.filter(t => t.id !== task.id) } : col
       );
       return withoutTask.map(col => {
         if (col.id !== toColumnId) return col;
         const newTasks = [...col.tasks];
-        const insertAt = toIndex !== undefined ? toIndex : newTasks.length;
-        newTasks.splice(insertAt, 0, task);
+        newTasks.splice(toIndex !== undefined ? toIndex : newTasks.length, 0, task);
         return { ...col, tasks: newTasks };
       });
     });
-
     setDraggedTask(null);
   };
 
@@ -176,7 +155,7 @@ export function useBoardState(initialBoardName: string) {
     handleMoveColumn,
     handleAddCard,
     handleDeleteCard,
-    handleUpdateCardContent,
+    handleUpdateTask,
     handleToggleTaskDone,
     handleTaskDragStart,
     handleTaskDrop,
