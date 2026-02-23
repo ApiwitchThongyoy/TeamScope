@@ -10,11 +10,14 @@ interface Board {
   isFavorite: boolean;
 }
 
+type SectionOrder = 'default' | 'favorite';
+
 export default function Home() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showCreateBoard, setShowCreateBoard] = useState(false);
   const [boards, setBoards] = useState<Board[]>([]);
+  const [sectionOrder, setSectionOrder] = useState<SectionOrder>('default');
 
   useEffect(() => {
     const savedBoards = JSON.parse(localStorage.getItem('boards') || '[]');
@@ -27,15 +30,9 @@ export default function Home() {
     localStorage.setItem('boards', JSON.stringify(updated));
   };
 
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') console.log('ค้นหา:', searchTerm);
-  };
-
   const handleSaveBoard = (boardData: { name: string; description: string; privacy: string }) => {
     const newBoard: Board = { ...boardData, id: Date.now(), isFavorite: false };
-    const updated = [...boards, newBoard];
-    saveBoards(updated);
-    navigate(`/board/${encodeURIComponent(boardData.name)}`);
+    saveBoards([...boards, newBoard]);
   };
 
   const handleBoardClick = (boardName: string) => {
@@ -61,22 +58,16 @@ export default function Home() {
       onClick={() => handleBoardClick(board.name)}
       className="relative bg-white rounded-2xl w-56 h-36 shadow-sm p-4 cursor-pointer hover:shadow-lg transition group flex flex-col justify-between"
     >
-      {/* Action buttons */}
       <div className="flex justify-between items-start">
         <h3 className="text-base font-bold text-slate-800 truncate pr-2">{board.name}</h3>
         <div className="flex gap-1 shrink-0">
-          {/* Bookmark */}
           <button
             onClick={(e) => handleToggleFavorite(e, board.id)}
             className="w-7 h-7 rounded-full flex items-center justify-center transition cursor-pointer hover:bg-gray-100"
             title={board.isFavorite ? 'ยกเลิก Bookmark' : 'เพิ่ม Bookmark'}
           >
-            <i className={`fi fi-sr-bookmark text-base leading-none
-              ${board.isFavorite ? 'text-yellow-400' : 'text-gray-300 group-hover:text-gray-400'}`}
-            />
+            <i className={`fi fi-sr-bookmark text-base leading-none ${board.isFavorite ? 'text-yellow-400' : 'text-gray-300 group-hover:text-gray-400'}`} />
           </button>
-
-          {/* Delete */}
           <button
             onClick={(e) => handleDelete(e, board.id)}
             className="w-7 h-7 rounded-full flex items-center justify-center transition cursor-pointer hover:bg-red-50 text-gray-300 hover:text-red-400 group-hover:text-gray-400"
@@ -86,7 +77,6 @@ export default function Home() {
           </button>
         </div>
       </div>
-
       <div>
         <p className="text-gray-500 text-xs line-clamp-2">{board.description}</p>
         <span className="text-xs text-gray-400 mt-1 inline-block">{board.privacy}</span>
@@ -94,8 +84,59 @@ export default function Home() {
     </div>
   );
 
+  const EmptyMessage = ({ text }: { text: string }) => (
+    <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
+      <p className="text-gray-400 text-sm">{text}</p>
+    </div>
+  );
+
+  // Section components
+  const RecentSection = () => (
+    <>
+      <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
+        <h2 className="text-3xl font-semibold">ล่าสุด</h2>
+      </div>
+      <div className="flex gap-4 flex-wrap">
+        <div className="bg-white rounded-2xl w-56 h-36 shadow-sm flex items-center justify-center">
+          <button
+            onClick={() => setShowCreateBoard(true)}
+            className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer"
+          >
+            <span className="text-2xl text-gray-600">+</span>
+          </button>
+        </div>
+        {boards.map((board) => <BoardCard key={board.id} board={board} />)}
+      </div>
+    </>
+  );
+
+  const FavoriteSection = () => (
+    <>
+      <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
+        <h2 className="text-3xl font-semibold">ชื่นชอบ</h2>
+      </div>
+      {favoriteBoards.length > 0
+        ? <div className="flex gap-4 flex-wrap">{favoriteBoards.map((board) => <BoardCard key={board.id} board={board} />)}</div>
+        : <EmptyMessage text="ยังไม่มีบอร์ดที่ bookmark ไว้" />
+      }
+    </>
+  );
+
+  const MyBoardSection = () => (
+    <>
+      <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
+        <h2 className="text-3xl font-semibold">บอร์ดของคุณ</h2>
+      </div>
+      {boards.length > 0
+        ? <div className="flex gap-4 flex-wrap">{boards.map((board) => <BoardCard key={board.id} board={board} />)}</div>
+        : <EmptyMessage text="ยังไม่มีบอร์ด กด + เพื่อสร้างบอร์ดแรก" />
+      }
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Navbar */}
       <nav className="flex justify-between items-center border-b border-gray-300 p-4 px-6 bg-white">
         <div className="w-1/4 flex items-center gap-3">
           <img src="/icon.svg" alt="TEAMSCOPE Logo" className="w-10 h-10 object-contain" />
@@ -105,7 +146,7 @@ export default function Home() {
           <input
             type="text" value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyDown={handleKeyPress}
+            onKeyDown={(e) => e.key === 'Enter' && console.log('ค้นหา:', searchTerm)}
             placeholder="ค้นหา..."
             className="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500"
           />
@@ -125,58 +166,49 @@ export default function Home() {
 
       <div className="pt-10">
         <div className="flex relative">
+          {/* Sidebar */}
           <aside className="fixed left-0 top-20 h-[calc(100vh-5rem)] bg-gray-200 p-4 flex flex-col items-center gap-8 rounded-tr-3xl z-40 transition-all duration-300 ease-in-out w-20 hover:w-64 group/sidebar overflow-hidden">
-            {[
-              { icon: 'fi-sr-document', label: 'DashBoard' },
-              { icon: 'fi-sr-bookmark', label: 'Favorite' },
-              { icon: 'fi-ss-settings', label: 'Setting' },
-            ].map(({ icon, label }) => (
-              <button key={label} className="p-4 hover:bg-gray-300 rounded-lg transition w-full flex items-center gap-4 cursor-pointer">
-                <i className={`fi ${icon} text-3xl md:text-4xl shrink-0`}></i>
-                <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">{label}</span>
-              </button>
-            ))}
+            <button
+              onClick={() => setSectionOrder('default')}
+              className={`p-4 rounded-lg transition w-full flex items-center gap-4 cursor-pointer ${sectionOrder === 'default' ? 'bg-gray-300' : 'hover:bg-gray-300'}`}
+            >
+              <i className="fi fi-sr-document text-3xl md:text-4xl shrink-0"></i>
+              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">DashBoard</span>
+            </button>
+
+            <button
+              onClick={() => setSectionOrder('favorite')}
+              className={`p-4 rounded-lg transition w-full flex items-center gap-4 cursor-pointer ${sectionOrder === 'favorite' ? 'bg-gray-300' : 'hover:bg-gray-300'}`}
+            >
+              <i className="fi fi-sr-bookmark text-3xl md:text-4xl shrink-0"></i>
+              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Favorite</span>
+            </button>
+
+            <button
+              onClick={() => setSectionOrder('default')}
+              className="p-4 hover:bg-gray-300 rounded-lg transition w-full flex items-center gap-4 cursor-pointer"
+            >
+              <i className="fi fi-ss-settings text-3xl md:text-4xl shrink-0"></i>
+              <span className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap">Setting</span>
+            </button>
           </aside>
 
+          {/* Main content */}
           <main className="flex-1 p-6 md:p-8 ml-20">
             <div className="max-w-6xl mx-auto space-y-6">
-
-              {/* ล่าสุด */}
-              <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
-                <h2 className="text-3xl font-semibold">ล่าสุด</h2>
-              </div>
-              <div className="flex gap-4 flex-wrap">
-                {/* ปุ่มสร้าง */}
-                <div className="bg-white rounded-2xl w-56 h-36 shadow-sm flex items-center justify-center">
-                  <button
-                    onClick={() => setShowCreateBoard(true)}
-                    className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center hover:bg-gray-400 transition cursor-pointer"
-                  >
-                    <span className="text-2xl text-gray-600">+</span>
-                  </button>
-                </div>
-                {boards.map((board) => <BoardCard key={board.id} board={board} />)}
-              </div>
-
-              {/* ชื่นชอบ */}
-              <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
-                <h2 className="text-3xl font-semibold">ชื่นชอบ</h2>
-              </div>
-              {favoriteBoards.length > 0 ? (
-                <div className="flex gap-4 flex-wrap">
-                  {favoriteBoards.map((board) => <BoardCard key={board.id} board={board} />)}
-                </div>
+              {sectionOrder === 'default' ? (
+                <>
+                  <RecentSection />
+                  <FavoriteSection />
+                  <MyBoardSection />
+                </>
               ) : (
-                <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
-                  <p className="text-gray-400 text-sm">ยังไม่มีบอร์ดที่ bookmark ไว้</p>
-                </div>
+                <>
+                  <FavoriteSection />
+                  <RecentSection />
+                  <MyBoardSection />
+                </>
               )}
-
-              {/* บอร์ดของคุณ */}
-              <div className="bg-white rounded-3xl h-16 shadow-sm flex items-center px-6">
-                <h2 className="text-3xl font-semibold">บอร์ดของคุณ</h2>
-              </div>
-
             </div>
           </main>
         </div>
